@@ -12,6 +12,7 @@ typedef long long int type;
 bool cmp(int a, int b) {
 	return a > b;
 }
+
 int findMax(vector<int> arr,int size) {
 	
 	vector<int>dataV;
@@ -34,7 +35,7 @@ int findMax(vector<int> arr,int size) {
 	int j = 0;
 	for (int i = 0; i <size; i++)
 	{		
-		j = int(upper_bound(dataV.begin(), dataV.end(), arr[i]) - dataV.begin());
+		j = int(lower_bound(dataV.begin(), dataV.end(), arr[i]) - dataV.begin());
 		if (j == size) {
 			return j;
 		}
@@ -58,13 +59,14 @@ int findMax(vector<int> arr,int size) {
 	vector<int> data(size+1);
 
 
-	data[size] =  dataIndV2[size];
+	data[size-1] =  dataIndV2[size-1];
 
-	for (int j = size - 1; j >= 1; j--) {
+	for (int j = size - 2; j >= 1; j--) {
 		data[j] = max(dataIndV2[j], data[j + 1]);
 	}
 
 	int sum = INT32_MIN;
+	int ci = INT32_MIN;
 	for (int i = 0; i < size ; i++) {
 
 		if (sum < (dataIndV[i] + data[i + 1])) 
@@ -72,7 +74,18 @@ int findMax(vector<int> arr,int size) {
 			sum = dataIndV[i] + data[i + 1];
 
 		}
+
+		if (ci < (dataIndV[i] + dataIndV2[i + 1]))
+		{
+			ci = dataIndV[i] + dataIndV2[i + 1];
+
+		}
+		
+		
+
 	}
+	cout << ci << endl;
+
 	return sum;
 }
 
