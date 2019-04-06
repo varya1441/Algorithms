@@ -1,41 +1,28 @@
 #pragma warning(disable : 4996)
 #include <stdio.h>
-
+#include <algorithm>
 #include<iostream>
-#include<numeric>
+#include<vector>
+
 
 using namespace std;
 
-bool isHeap(int* arr, int size)
-{
-	int j = 0;
-	int n = size / 2;
-	for (int i = 0; i < n-1; i++)
-	{
-		j = 2 * i + 1;
-		if ((arr[i] > arr[j]) || (arr[i] > arr[j + 1])) {
-			return false;
-		}
-	}
-	if (arr[n-1] > arr[(n-1)*2+1])
-		return false;
-	return true;
-}
+
 int main() {
 	freopen("input.txt", "r", stdin);
 	freopen("output.txt", "w", stdout);
 
 	int a;
 	int i = 0;
-	int num;
+	long num;
 	cin >> num;
 
-	int* arr = new int[num];
-	for (int j = 0; j < num;j++) {
+	vector<long> arr;
+	for (int j = 0; j <num;j++) {
 		cin >> a;
-		arr[j] = a;
+		arr.emplace(arr.begin()+j,a);
 	}
-	if (isHeap(arr, num)) {
+	if (is_heap(arr.begin(), arr.end(), [](long a,long b) {return a>b; })) {
 		cout << "Yes"<<endl;
 	}
 	else
