@@ -4,67 +4,68 @@
 #include <functional>
 #include <queue>
 #include <iostream>
+#include <set>
 
-using namespace std;
+using namespace std;;
+vector<int> visited;
 
-void shortestPath(vector<pair<int,int> > adj[], int last, int first)
-{
+void shortestPath( vector< vector<pair<int, int>>>adj,int last) {
 
-    priority_queue< pair<int, int>, vector< pair<int, int>> , greater<pair<int, int>> > pq;
-
-
-    vector<int> dist(last, INT8_MAX);
+    set<pair<long long, int>> pq;
 
 
-    pq.push(make_pair(0, first));
-    dist[first] = 0;
+    auto *dist = new long long[last + 1];
+    for (int i = 0; i < last; ++i) {
+        dist[i] = LLONG_MAX;
+    }
 
 
-    while (!pq.empty())
-    {
+    pq.insert(make_pair(0, 1));
 
-        int u = pq.top().second;
-        pq.pop();
+    dist[1] = 0;
 
-        for (auto x : adj[u])
-        {
 
+    while (!pq.empty()) {
+
+        long long u = pq.begin()->second;
+        pq.erase(pq.begin());
+
+
+        for (auto x : adj[u]) {
+            long long weight = x.second;
             int v = x.first;
-            int weight = x.second;
 
 
-            if (dist[v] > dist[u] + weight)
-            {
+            if ((dist[v] > dist[u] + weight)) {
+                if (dist[v] != LLONG_MAX)
+                    pq.erase(pq.find(make_pair(dist[v], v)));
 
                 dist[v] = dist[u] + weight;
-                pq.push(make_pair(dist[v], v));
+                pq.insert(make_pair(dist[v], v));
             }
         }
     }
 
 
-        cout<<dist[last-1];
+    cout << dist[last - 1];
 }
 
-int main()
-
-{
+int main() {
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
 
-    int n,first=1,m;
-    cin>>n>>m;
-    int x,y,v;
-    vector<vector<pair<int, int> >> adj[m];
-    for (int i = 0; i <m ; ++i) {
-        cin>>x>>y>>v;
-        adj[x].push_back(make_pair(y, v));
-        adj[y].push_back(make_pair(x, v));
+   int n, first = 1, m;
+    cin >> n >> m;
+    int x, y, v;
+    vector<vector<pair<int, int>>> adj(static_cast<unsigned int>(n + 1));
+    //  adj.resize(n + 1, vector<pair<long long, long long>>());
+    for (int i = 0; i < m; ++i) {
+        cin >> x >> y >> v;
+        adj[x].emplace_back(y, v);
+        adj[y].emplace_back(x, v);
 
     }
-
-
-    shortestPath(adj, m, first);
+    shortestPath(adj, n + 1);
 
     return 0;
 }
