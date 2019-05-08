@@ -1,184 +1,130 @@
+#include<iostream>
+#include <fstream>
 #include <vector>
-#include <cstdio>
-#include <functional>
 #include <queue>
-#include <iostream>
-
 using namespace std;
-
-int n, r, left, right;
-int last;
-vector<bool> visited;
-struct V;
-int first;
-vector<vector<V>> adj;
-
-vector<pair<int, int>> path;
-
-struct V {
-    int num;
-    int parent;
-    int priority;
-    int rout;
-
-    V(int num, int parent, int priority, int rout);
-
-    V();
+struct top
+{
+    int num;//номер остановки
+    int index;//индекс в маршруте
+    int marsh;//маршрут
+    bool visited;
+    top(int x, top* f, int y, int o)
+    {
+        num = x;
+        marsh = y;
+        index = o;
+        visited = false;
+    }
 
 };
-
-V::V(int num, int parent, int priority, int rout) : num(num), parent(parent), priority(priority), rout(rout) {}
-
-V::V() {}
-
-
-struct cmp {
-    bool operator()(const pair<long long, V> &rhs, const pair<long long, V> &rhs2) {
-        return rhs.first > rhs2.first;
+struct priority
+{
+    top* vershina;//вершина
+    priority* pred;//предок
+    long long int level;//приоритет
+    priority(priority*p,top*t,long long int lev)
+    {
+        vershina = t;
+        pred = p;
+        level = lev;
     }
 };
-priority_queue<pair<long long, V>, vector<pair<long long, V >>, cmp> pq4;
-deque<pair<long long ,V>>dq;//
-priority_queue<pair<long long, V>, vector<pair<long long, V >>, cmp> pq1;
 
-int dijksta(int firstT, int last) {
-
-
-    auto *dist = new long long[n + 1];
-    for (int i = 0; i <= n; ++i) {
-        dist[i] = LLONG_MAX;
-    }
-
-
-
-    dist[firstT] = 0;
-    visited[firstT] = true;
-    V v;
-    pair<long long, V> u;
-
-    while (!pq1.empty() || !pq4.empty()) {
-
-        if (!pq1.empty() && !pq4.empty()) {
-            if (pq1.top().first< pq4.top().first) {
-                u = pq1.top();
-                pq1.pop();
-            } else {
-                u = pq4.top();
-                pq4.pop();
-            }
-        } else if (!pq4.empty()) {
-            u = pq4.top();
-            pq4.pop();
-
-
-        } else if (!pq1.empty()) {
-            u = pq1.top();
-            pq1.pop();
-
-
-        }
-
-        v = u.second;
-        for (auto x : adj[v.num]) {
-           if (visited[x.num] == false) {
-                {
-
-
-                    if (x.rout != v.rout) {
-                        if (dist[x.num] >= u.first + 4) {
-                            dist[x.num] =  u.first + 4;
-
-                            path[x.num] = make_pair(u.second.num, x.rout);
-                            pq4.push(make_pair(dist[x.num], x));
-                        }
-
-                    } else {
-                        if ((dist[x.num] >= u.first + 1)) {
-                            dist[x.num] = u.first + 1;
-                            path[x.num] = make_pair(u.second.num, v.rout);
-                            pq1.push(make_pair(dist[x.num], x));
-                        }
-                    }
-
-                    visited[u.second.num] = true;
-                    if(v.num==last){
-                        return dist[last];
-                    }
-                }
-            }
-        }
-
-
-    }
-
-
-    return dist[last];
-
-}
-
-void print(int last) {
-
-
-    if (last == ::first ) {
-
-        return;
-    }
-
-
-
-    print(path[last].first);
-
-    cout << path[last].first << " " << path[last].second << endl;
-
-
-}
-
-
-int main() {
-    freopen("input.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
-
-
-    int u, v;
-    int c;
-
-    cin >> n >> r >> last >> first;
-    if(first==last){
-        cout<<0;
+int main()
+{
+    ifstream filein("in.txt");
+    ofstream fileout("out.txt");
+    ///////////////////////////
+    int number_of_stops;
+    int number_of_marsh;
+    int nachalo, konec, x, y, z;
+    filein >> number_of_stops >> number_of_marsh>>nachalo>>konec;
+    if (nachalo == konec)
+    {
+        fileout << "0";
+        fileout.close();
         return 0;
     }
-    adj.resize(n + 1, vector<V>());
-    path.resize(n + 1, make_pair(-1, -1));
-    visited.resize(n + 1, false);
-    for (int i = 0; i < r; ++i) {
-        cin >> c;
-        cin >> u;
+    vector<vector<top*>> full(number_of_stops);//в этот массив будем запихивать список смежности
+    nachalo = nachalo - 1;konec = konec - 1;
+    ///////////////////////////////////////////
+    bool *attached = new bool[number_of_stops];
+    for (int t = 0; t < number_of_stops; t++)
+    {attached[t] = false;}
+    ///////////////////////////////////////////
+    queue<priority*>little_ones;
+    queue<priority*>big_ways;
+    for (int u = 0; u < number_of_marsh; u++)
+    {
+        filein >> z >> x;top*ver = new top(x - 1, nullptr, u, 0);
+        if (x == nachalo + 1)
+            little_ones.push(new priority(nullptr, ver, 0));
+        for (int t = 1; t < z; ++t)
+        {
+            filein >> y;
+            top* vers = new top(y - 1, nullptr, u, t);
+            if (y == nachalo + 1)
+                little_ones.push(new priority(nullptr,vers, 0));
+            full[y - 1].push_back(ver);
+            full[x - 1].push_back(vers);
+            ver = vers;
+            x = y;
 
-        for (int j = 0; j < c - 1; ++j) {
-            cin >> v;
-            if(u==first){
-                adj[u].push_back(V(v, u, j+1, i + 1));
-                adj[v].push_back(V(u, v, j+1, i + 1));
-                pq1.push(make_pair(0,V(u, v, j+1, i + 1)));
-            }
-            else
-            {
-                adj[u].push_back(V(v, u, j+1, i + 1));
-                adj[v].push_back(V(u, v, j+1, i + 1));
-            }
+        }
+    }
+    //////////////////////////////////
+    priority* currrent_stop;//ntreofz jcnfyjdrf
+    priority* aim = nullptr;
+    //////////////////////////////////
+    while ((!little_ones.empty()) || (!big_ways.empty()))
+    {
 
-
-            u = v;
+        if (big_ways.empty())
+        {
+            currrent_stop = little_ones.front();
+            little_ones.pop();
+        }
+        else if ((little_ones.empty()) || (big_ways.front()->level <= little_ones.front()->level))
+        {
+            currrent_stop = big_ways.front();
+            big_ways.pop();
+        }
+        else
+        {
+            currrent_stop = little_ones.front();
+            little_ones.pop();
         }
 
+        if (currrent_stop->vershina->visited)
+            continue;
+
+        currrent_stop->vershina->visited = true;
+        if (!attached[currrent_stop->vershina->num])
+        {
+            if (currrent_stop->vershina->num == konec)
+            {
+                aim = currrent_stop;
+                attached[currrent_stop->vershina->num] = true;
+                break;
+            }
+        }
+        attached[currrent_stop->vershina->num] = true;
+        int size = full[currrent_stop->vershina->num].size();
+        for (int i = 0; i < size; ++i)
+        {
+            auto step_by_step = full[currrent_stop->vershina->num].at(i);
+            if (!step_by_step->visited)
+            {
+                if ((step_by_step->marsh != currrent_stop->vershina->marsh) || (abs(currrent_stop->vershina->index - step_by_step->index) > 1))
+                    big_ways.push(new priority(currrent_stop,  step_by_step, currrent_stop->level + 4));
+                else little_ones.push(new priority(currrent_stop, step_by_step,  currrent_stop->level + 1));
+            }
+        }
     }
-    long long ans = dijksta( first,last);
-    if (ans != -1) {
-        cout << ans << endl;
-        print(last);
-        cout<<last<<" "<<path[last].second;
-    } else {
-        cout << "NoWay" << endl;
-    }
+    ////////////////////////////////////////////////////////////////////
+    if (!attached[konec])fileout << "NoWay" << endl;
+    else
+    {fileout << aim->level << endl;while (aim != nullptr){fileout <<aim->vershina->num+1  << " " << aim->vershina->marsh+1 << endl;aim = aim->pred;}}
     return 0;
 }

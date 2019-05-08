@@ -1,127 +1,119 @@
-/************************************************************************************
-    Min Cost Flow (or Min Cost Max Flow) algorithm with
-    Dijkstra algorithm (with potentials) as shortest path search method.
-    (Dijkstra for dense graphs running in O(N^2))
-    Works O(N ^ 5). Less on practice.
-    Runs in O(N ^ 3) for bipartite matching case.
-    Based on problem 394 from informatics.mccme.ru
-    http://informatics.mccme.ru//mod/statements/view3.php?chapterid=394
-************************************************************************************/
-
 #include <vector>
 #include <cstdio>
-#include <functional>
 #include <queue>
 #include <iostream>
 #include <set>
 
+#include <cmath>
 
 using namespace std;
-int n, s, f, t;
+int t, s, n;
+const int inf = INT32_MAX;
 
-struct Edge {
-    Edge(int _a, int _b, int _c, int _f, int _w) {
-        a = _a;
-        b = _b;
-        c = _c;
-        f = _f;
-        w = _w;
-    }
+struct Edgee {
+    int to, cost, cap, flow, backEdge;
 
-    ~Edge() {};
-    int a; //from
-    int b; //to
-    int c; //capacity
-    int f; //flow
-    int w; //weight
-    Edge *r;
+    Edgee(int to, int cost, int cap, int flow, int backEdge) : to(to), cost(cost), cap(cap), flow(flow),
+                                                               backEdge(backEdge) {}
 };
 
-const int MAX_NODES = 2000;
-const int MAX_DIST = 2000000; //do not choose INT_MAX because you are adding weights to it
-vector<vector<Edge *>> adj;
-vector<int> distances;
-vector<Edge *> parents;
+vector<vector<Edgee>> agj;
+vector<int> state, from, from_edge, d;
 
+bool dijkstra() {
+    int head=0,tail=0;
+    state.assign(n, 2), from.assign(n, -1), d.assign(n, inf);
 
-bool find_path(int from, int to, vector<Edge *> &output) {
-    distances.clear();
-    distances.resize(n+1, MAX_DIST );
-    distances[from] = 0;
+    vector<int> q(n);
 
-    bool updated = true;
-    while (updated) {
-        updated = false;
-        for (int j = 0; j < n; ++j)
-            for (int k = 0; k < (int) adj[j].size(); ++k) {
-                Edge *e = adj[j][k];
-                if (e->f <e->c)
-                if (distances[e->b] > distances[e->a] + e->w) {
-                    distances[e->b] = distances[e->a] + e->w;
-                    parents[e->b] = e;
-                    updated = true;
-                }
-            }
-    }
-    output.clear();
-    if (distances[to] == MAX_DIST ) return false;
-    int cur = to;
-    while (parents[cur]) {
-        output.push_back(parents[cur]);
-        cur = parents[cur]->a;
-    }
-    return true;
-}
-
-int min_cost_max_flow() {
-    int total_cost = 0;
-    vector<Edge *> p;
-    int myF=0;
-    while (find_path(s, f, p)) {
-        int flow = INT_MAX;
-        for (int i = 0; i < p.size(); ++i)
-            if (p[i]->c - p[i]->f < flow) flow = p[i]->c - p[i]->f;
-
-        int cost = 0;
-        for (int i = 0; i < p.size(); ++i) {
-            cost += p[i]->w;
-            p[i]->f += flow;
-            p[i]->r->f -= flow;
+    d[s] = 0;
+    state[s] = 1;
+    q[tail]=s;
+    tail++;
+    while (head!=tail) {
+        int v = q[head];
+        head++;
+        if(head==n) {
+            head = 0;
         }
-        cost *= flow; //cost per flow
-        total_cost += cost;
-        myF=flow;
+        state[v] = 0;
+
+        for (int i = 0; i < (int) agj[v].size(); i++) {
+            Edgee e = agj[v][i];
+            if (e.flow >= e.cap || d[e.to] <= d[v] + e.cost)
+                continue;
+            int to = e.to;
+            d[to] = d[v] + e.cost;
+            from[to] = v;
+            from_edge[to] = i;
+            if (state[to] == 1) continue;
+            if (!state[to]) {
+                head--;
+                if (head == -1)
+                    head = n - 1;
+
+                q.emplace(q.begin()+head,to);
+
+            }
+            else {
+
+                q.emplace(q.begin() + tail, to);
+                tail++;
+                if (tail == n)
+                    tail = 0;
+            }
+            state[to] = 1;
+        }
     }
-  cout<<total_cost<<" "<<myF;
+    return d[t] != inf;
 }
 
+void minCostMaxFlow() {
+
+    long long flow = 0, cost = 0;
+    while (dijkstra()) {
+
+
+        int it = t, addf = inf;
+        while (it != s) {
+            addf = min(addf, agj[from[it]][from_edge[it]].cap
+                             - agj[from[it]][from_edge[it]].flow);
+            it = from[it];
+        }
+        it = t;
+        while (it != s) {
+            agj[from[it]][from_edge[it]].flow += addf;
+            agj[it][agj[from[it]][from_edge[it]].backEdge].flow -= addf;
+            cost += agj[from[it]][from_edge[it]].cost * addf;
+            it = from[it];
+        }
+        flow += addf;
+    }
+    cout << flow << endl << cost;
+}
 
 int main() {
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
-
-    cin >> n >> s >> f;
-    int u, v, c, flow;
-
-    t = n * 2 + 1;
-    adj.resize(t , vector<Edge *>());
-    parents.resize(t , (Edge *) 0);
-
-
-    for (int i = 0; i < n; i++) {
-
-        cin >> u >> v >> flow >> c;
-        Edge *e = new Edge(u, v, flow, 0, c);
-        Edge *re = new Edge(v, u, 0, 0, -c);
-        e->r = re;
-        re->r = e;
-        adj[u].push_back(e);
-        adj[v].push_back(re);
+    int u, v, c, w;
+    cin >> n >> s >> t;
+    s--;
+    t--;
+    int counter;
+    agj.resize(n + 1);
+    state.resize(n), from.resize(n), from_edge.resize(n), d.resize(n);
+    while (cin >> u) {
+        u--;
+        cin >> v >> c >> w;
+        v--;
+        agj[u].push_back(Edgee(v, w, c, 0, static_cast<int>(agj[v].size())));
+        agj[v].push_back(Edgee(u, -w, 0, 0, static_cast<int>(agj[u].size())));
+        agj[u].push_back(Edgee(v, -w, 0, 0, static_cast<int>(agj[v].size())));
+        agj[v].push_back(Edgee(u, w, c, 0, static_cast<int>(agj[u].size())));
 
 
     }
-    cout << min_cost_max_flow() << endl;
-
-
+    // n++;
+    minCostMaxFlow();
     return 0;
 }
