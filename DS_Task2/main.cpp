@@ -1,130 +1,187 @@
-#include<iostream>
-#include <fstream>
 #include <vector>
+#include <cstdio>
 #include <queue>
+#include <iostream>
+
 using namespace std;
-struct top
-{
-    int num;//номер остановки
-    int index;//индекс в маршруте
-    int marsh;//маршрут
+
+int_fast32_t n;
+
+int_fast32_t last;
+struct V;
+struct Q;
+int_fast32_t first;
+vector<vector<V *>> adj;
+
+struct V {
+    int_fast32_t num;
+    int_fast16_t priority;
+    int_fast16_t rout;
     bool visited;
-    top(int x, top* f, int y, int o)
-    {
-        num = x;
-        marsh = y;
-        index = o;
-        visited = false;
-    }
+
+
+    V(int num, int_fast16_t priority, int_fast16_t rout, bool visited);
+
+    V();
 
 };
-struct priority
-{
-    top* vershina;//вершина
-    priority* pred;//предок
-    long long int level;//приоритет
-    priority(priority*p,top*t,long long int lev)
-    {
-        vershina = t;
-        pred = p;
-        level = lev;
-    }
+
+struct Q {
+    V *current;
+    Q *prev;
+    int_fast32_t dist;
+
+    Q();
+
+    Q(V *current, Q *prev, int_fast32_t dist) : current(current), prev(prev), dist(dist) {}
 };
 
-int main()
-{
-    ifstream filein("in.txt");
-    ofstream fileout("out.txt");
-    ///////////////////////////
-    int number_of_stops;
-    int number_of_marsh;
-    int nachalo, konec, x, y, z;
-    filein >> number_of_stops >> number_of_marsh>>nachalo>>konec;
-    if (nachalo == konec)
-    {
-        fileout << "0";
-        fileout.close();
+Q::Q() {
+
+}
+
+
+V::V(int_fast32_t num, int_fast16_t priority, int_fast16_t rout, bool visited) : num(num), priority(priority), rout(rout), visited(visited) {}
+
+V::V() = default;
+
+
+
+
+queue<Q *> pq4;
+queue<Q *> pq1;
+V *_v = nullptr;
+Q *u = nullptr;
+
+int_fast32_t dijksta(int_fast32_t firstT, int_fast32_t last) {
+
+
+    while (!pq1.empty() || !pq4.empty()) {
+
+        if (!pq1.empty() && !pq4.empty()) {
+            if (pq1.front()->dist < pq4.front()->dist) {
+                u = pq1.front();
+                pq1.pop();
+            } else {
+                u = pq4.front();
+                pq4.pop();
+            }
+        } else if (!pq4.empty()) {
+            u = pq4.front();
+            pq4.pop();
+
+
+        } else if (!pq1.empty()) {
+            u = pq1.front();
+            pq1.pop();
+
+
+        }
+
+        (_v) = (u->current);
+        if ((u)->current->visited)continue;
+        (u)->current->visited = true;
+        if (((_v)->num) == last) {
+            return u->dist;
+        }
+        for (V *x : adj[(_v)->num]) {
+            if (!x->visited) {
+                {
+
+
+                    if (x->rout == (_v)->rout && (abs(x->priority - (_v)->priority) == 1)) {
+
+
+                        pq1.emplace(new Q(x, u, u->dist + 1));
+
+
+                    } else {
+
+                        pq4.emplace(new Q(x, u, u->dist + 4));
+
+
+                    }
+
+                }
+            }
+        }
+
+
+    }
+
+
+    return -1;
+
+}
+
+void print() {
+    Q *curr = u;
+    while (curr != nullptr) {
+        cout << curr->current->num << " " << curr->current->rout << endl;
+        curr = (curr->prev);
+    }
+
+
+}
+
+
+int main() {
+    freopen("in.txt", "r", stdin);
+    freopen("out.txt", "w", stdout);
+
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    //cout.tie(nullptr);
+
+    int_fast16_t r, c;
+    int_fast32_t _u, v;
+
+    cin >> n >> r >> first >> last;
+
+    if (first == last) {
+        cout << 0;
         return 0;
     }
-    vector<vector<top*>> full(number_of_stops);//в этот массив будем запихивать список смежности
-    nachalo = nachalo - 1;konec = konec - 1;
-    ///////////////////////////////////////////
-    bool *attached = new bool[number_of_stops];
-    for (int t = 0; t < number_of_stops; t++)
-    {attached[t] = false;}
-    ///////////////////////////////////////////
-    queue<priority*>little_ones;
-    queue<priority*>big_ways;
-    for (int u = 0; u < number_of_marsh; u++)
-    {
-        filein >> z >> x;top*ver = new top(x - 1, nullptr, u, 0);
-        if (x == nachalo + 1)
-            little_ones.push(new priority(nullptr, ver, 0));
-        for (int t = 1; t < z; ++t)
-        {
-            filein >> y;
-            top* vers = new top(y - 1, nullptr, u, t);
-            if (y == nachalo + 1)
-                little_ones.push(new priority(nullptr,vers, 0));
-            full[y - 1].push_back(ver);
-            full[x - 1].push_back(vers);
-            ver = vers;
-            x = y;
-
+    adj.resize(static_cast<size_t>(n + 1), vector<V *>());
+    for (int_fast16_t i = 0; i < r; ++i) {
+        cin >> c;
+        cin >> _u;
+        V *ver1 = new V(_u, 0, i + 1, false);
+        if (_u == first) {
+            pq1.emplace(new Q(ver1, nullptr, 0));
         }
-    }
-    //////////////////////////////////
-    priority* currrent_stop;//ntreofz jcnfyjdrf
-    priority* aim = nullptr;
-    //////////////////////////////////
-    while ((!little_ones.empty()) || (!big_ways.empty()))
-    {
+        for (int_fast16_t j = 0; j < c - 1; ++j) {
+            cin >> v;
+            V *ver2 = new V(v, j + 1, i + 1, false);
 
-        if (big_ways.empty())
-        {
-            currrent_stop = little_ones.front();
-            little_ones.pop();
-        }
-        else if ((little_ones.empty()) || (big_ways.front()->level <= little_ones.front()->level))
-        {
-            currrent_stop = big_ways.front();
-            big_ways.pop();
-        }
-        else
-        {
-            currrent_stop = little_ones.front();
-            little_ones.pop();
-        }
+            if (v == first) {
 
-        if (currrent_stop->vershina->visited)
-            continue;
-
-        currrent_stop->vershina->visited = true;
-        if (!attached[currrent_stop->vershina->num])
-        {
-            if (currrent_stop->vershina->num == konec)
-            {
-                aim = currrent_stop;
-                attached[currrent_stop->vershina->num] = true;
-                break;
+                pq1.emplace(new Q(ver2, nullptr, 0));
             }
+
+            adj[_u].emplace_back(ver2);
+            adj[v].emplace_back(ver1);
+            ver1 = ver2;
+            _u = v;
         }
-        attached[currrent_stop->vershina->num] = true;
-        int size = full[currrent_stop->vershina->num].size();
-        for (int i = 0; i < size; ++i)
-        {
-            auto step_by_step = full[currrent_stop->vershina->num].at(i);
-            if (!step_by_step->visited)
-            {
-                if ((step_by_step->marsh != currrent_stop->vershina->marsh) || (abs(currrent_stop->vershina->index - step_by_step->index) > 1))
-                    big_ways.push(new priority(currrent_stop,  step_by_step, currrent_stop->level + 4));
-                else little_ones.push(new priority(currrent_stop, step_by_step,  currrent_stop->level + 1));
-            }
-        }
+
     }
-    ////////////////////////////////////////////////////////////////////
-    if (!attached[konec])fileout << "NoWay" << endl;
-    else
-    {fileout << aim->level << endl;while (aim != nullptr){fileout <<aim->vershina->num+1  << " " << aim->vershina->marsh+1 << endl;aim = aim->pred;}}
+
+    int_fast32_t ans = dijksta(first, last);
+//    while (pq1.empty()){
+//        pq1.pop();
+//    }
+//    while (pq4.empty()){
+//        pq4.pop();
+//    }
+    if (ans != -1) {
+        cout << ans << endl;
+        print();
+
+    } else {
+        cout << "NoWay" << endl;
+    }
+    fclose(stdin);
+    fclose(stdout);
     return 0;
 }

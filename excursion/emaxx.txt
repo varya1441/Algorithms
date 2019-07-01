@@ -1,87 +1,258 @@
-#include <iostream>
-#include <vector>
 #include <fstream>
+#include <vector>
+#include <deque>
+#include <tuple>
+#include <algorithm>
 
-using namespace std;
 
 
-const int INF = 1000*1000*1000;
-
-struct rib {
-	int b, u, c, f;
-	size_t back;
+enum class DistanceLabel {
+    NOT_CALCULATED,
+    CALCULATING,
+    CALCULATED,
 };
 
-void add_rib (vector < vector<rib> > & g, int a, int b, int u, int c) {
-	rib r1 = { b, u, c, 0, g[b].size() };
-	rib r2 = { a, 0, -c, 0, g[a].size() };
-	g[a].push_back (r1);
-	g[b].push_back (r2);
+
+
+class Edge {
+
+public:
+
+    Edge(int16_t toVertex,
+         int16_t bandwidth,
+         int16_t flowUnitCost,
+         int16_t pairEdgeIndex,
+         int32_t flow = 0)
+        : toVertex(toVertex)
+        , bandwidth(bandwidth)
+        , flowUnitCost(flowUnitCost)
+        , pairEdgeIndex(pairEdgeIndex)
+        , flow(flow) {
+    }
+
+    int16_t toVertex;
+    int16_t bandwidth;
+    int16_t flowUnitCost;
+    int16_t pairEdgeIndex;
+    int32_t flow;
+};
+
+
+
+class Graph {
+
+public:
+
+    Graph(int16_t verticesNumber = 0)
+        : _adjacencyList(verticesNumber) {
+    }
+
+    void addEdge(int16_t u, int16_t v,
+                 int16_t bandwidth, int16_t flowUnitCost) {
+
+        Edge uv(v, bandwidth, flowUnitCost, _adjacencyList[v].size());
+        Edge vu(u, 0, -flowUnitCost, _adjacencyList[u].size());
+
+        _adjacencyList[u].push_back(uv);
+        _adjacencyList[v].push_back(vu);
+    }
+
+    friend std::istream& operator>>(std::istream& in, Graph& graph);
+
+    auto findMinCostMaxFlow() {
+
+        int16_t verticesNumber = _adjacencyList.size();
+
+        int32_t currentFlow = 0;
+        int32_t currentCost = 0;
+
+        int32_t desiredFlow = INF;
+
+        while (currentFlow < desiredFlow) {
+
+            std::vector<int16_t> parents(verticesNumber, -1);
+            std::vector<int16_t> parentEdgeIndexes(verticesNumber, -1);
+
+            bool pathExists = findTheCheapestPath(parents, parentEdgeIndexes);
+
+            if (!pathExists) {
+                break;
+            }
+
+            auto minResidualBandwidth = findMinResidualBandwidth(currentCost, desiredFlow,
+                                                                 parents, parentEdgeIndexes);
+
+            increaseFlow(currentFlow, currentCost, minResidualBandwidth, parents, parentEdgeIndexes);
+        }
+
+        return std::make_tuple(currentCost, currentFlow);
+    }
+
+private:
+
+    // Levit’s algorithm
+    bool findTheCheapestPath(std::vector<int16_t>& parents,
+                             std::vector<int16_t>& parentEdgeIndexes) const {
+
+        int16_t verticesNumber = _adjacencyList.size();
+
+        std::vector<int32_t> minCosts(verticesNumber, INF);
+        std::vector<DistanceLabel> labels(verticesNumber, DistanceLabel::NOT_CALCULATED);
+        std::deque<int16_t> deque;
+
+        minCosts[_startVertex] = 0;
+        deque.push_back(_startVertex);
+
+        while (!deque.empty()) {
+
+            auto vertex = deque.front();
+            deque.pop_front();
+
+            labels[vertex] = DistanceLabel::CALCULATED;
+
+            for (int16_t edgeIndex = 0;
+                 edgeIndex < _adjacencyList[vertex].size();
+                 ++edgeIndex) {
+
+                auto& edge = _adjacencyList[vertex][edgeIndex];
+                auto neighbor = edge.toVertex;
+
+                auto costToNeighbor = minCosts[vertex] + edge.flowUnitCost;
+
+                if ((edge.flow < edge.bandwidth)
+                    && (costToNeighbor < minCosts[neighbor])) {
+
+                    minCosts[neighbor] = costToNeighbor;
+
+                    if (labels[neighbor] == DistanceLabel::NOT_CALCULATED) {
+                        deque.push_back(neighbor);
+
+                    } else if (labels[neighbor] == DistanceLabel::CALCULATED) {
+                        deque.push_front(neighbor);
+                    }
+
+                    labels[neighbor] = DistanceLabel::CALCULATING;
+
+                    parents[neighbor] = vertex;
+                    parentEdgeIndexes[neighbor] = edgeIndex;
+                }
+            }
+        }
+
+        return minCosts[_finishVertex] != INF;
+    }
+
+    int32_t findMinResidualBandwidth(int32_t currentFlow, int32_t desiredFlow,
+                                     const std::vector<int16_t>& parents,
+                                     const std::vector<int16_t>& parentEdgeIndexes) const {
+
+        auto minResidualBandwidth = desiredFlow - currentFlow;
+
+        for (int16_t v = _finishVertex; v != _startVertex; v = parents[v]) {
+
+            auto parentVertex = parents[v];
+            auto parentEdgeIndex = parentEdgeIndexes[v];
+
+            auto& parentEdge = _adjacencyList[parentVertex][parentEdgeIndex];
+
+            auto residualBandwidth = parentEdge.bandwidth - parentEdge.flow;
+
+            if (residualBandwidth < minResidualBandwidth) {
+                minResidualBandwidth = residualBandwidth;
+            }
+        }
+
+        return minResidualBandwidth;
+    }
+
+    void increaseFlow(int32_t& currentFlow, int32_t& currentCost,
+                      int32_t minResidualBandwidth,
+                      const std::vector<int16_t>& parents,
+                      const std::vector<int16_t>& parentEdgeIndexes) {
+
+        for (int16_t v = _finishVertex; v != _startVertex; v = parents[v]) {
+
+            auto parentVertex = parents[v];
+            auto parentEdgeIndex = parentEdgeIndexes[v];
+            auto parentEdgePairIndex = _adjacencyList[parentVertex][parentEdgeIndex].pairEdgeIndex;
+
+            _adjacencyList[parentVertex][parentEdgeIndex].flow += minResidualBandwidth;
+            _adjacencyList[v][parentEdgePairIndex].flow -= minResidualBandwidth;
+
+            currentCost += _adjacencyList[parentVertex][parentEdgeIndex].flowUnitCost * minResidualBandwidth;
+        }
+
+        currentFlow += minResidualBandwidth;
+    }
+
+
+private:
+    std::vector<std::vector<Edge>> _adjacencyList;
+
+    int16_t _startVertex;
+    int16_t _finishVertex;
+
+    static const int32_t INF = INT32_MAX / 2;
+};
+
+
+std::istream& operator>>(std::istream& in, Graph& graph) {
+
+    int16_t islandsNumber;
+    int16_t startIsland;
+    int16_t finishIsland;
+
+    in >> islandsNumber;
+    in >> startIsland;
+    in >> finishIsland;
+
+    --startIsland;
+    --finishIsland;
+
+    graph = Graph(islandsNumber);
+
+    graph._startVertex = startIsland;
+    graph._finishVertex = finishIsland;
+
+    int16_t u;
+    int16_t v;
+    int16_t maxPeopleNumberOnBridge;
+    int16_t bridgeCost;
+
+    while (in >> u) {
+
+        in >> v;
+        in >> maxPeopleNumberOnBridge;
+        in >> bridgeCost;
+
+        --u;
+        --v;
+
+        graph.addEdge(u, v, maxPeopleNumberOnBridge, bridgeCost);
+        graph.addEdge(v, u, maxPeopleNumberOnBridge, bridgeCost);
+    }
+
+    return in;
 }
 
+
+
 int main() {
-    ifstream fin("input.txt");
-    ofstream fout("output.txt");
-	int n, m, k;
-    k = INF;
-    int s, t;
-    fin >> n >> s >> t;
-    --s;
-    --t;
-	vector < vector<rib> > g (n);
-    int a, b, u, c;
-    while (fin >> a) {
-        fin >> b >> u >> c;
-        --a;
-        --b;
-        add_rib(g, a, b, u, c);
-        add_rib(g, b, a, u, c);
-    }
-	int flow = 0,  cost = 0;
-	while (flow < k) {
-		vector<int> id (n, 0);
-		vector<int> d (n, INF);
-		vector<int> q (n);
-		vector<int> p (n);
-		vector<size_t> p_rib (n);
-		int qh=0, qt=0;
-		q[qt++] = s;
-		d[s] = 0;
-		while (qh != qt) {
-			int v = q[qh++];
-			id[v] = 2;
-			if (qh == n)  qh = 0;
-			for (size_t i=0; i<g[v].size(); ++i) {
-				rib & r = g[v][i];
-				if (r.f < r.u && d[v] + r.c < d[r.b]) {
-					d[r.b] = d[v] + r.c;
-					if (id[r.b] == 0) {
-						q[qt++] = r.b;
-						if (qt == n)  qt = 0;
-					}
-					else if (id[r.b] == 2) {
-						if (--qh == -1)  qh = n-1;
-						q[qh] = r.b;
-					}
-					id[r.b] = 1;
-					p[r.b] = v;
-					p_rib[r.b] = i;
-				}
-			}
-		}
-		if (d[t] == INF)  break;
-		int addflow = k - flow;
-		for (int v=t; v!=s; v=p[v]) {
-			int pv = p[v];  size_t pr = p_rib[v];
-			addflow = min (addflow, g[pv][pr].u - g[pv][pr].f);
-		}
-		for (int v=t; v!=s; v=p[v]) {
-			int pv = p[v];  size_t pr = p_rib[v],  r = g[pv][pr].back;
-			g[pv][pr].f += addflow;
-			g[v][r].f -= addflow;
-			cost += g[pv][pr].c * addflow;
-		}
-		flow += addflow;
-	}
-	fout << flow << "\n" <<cost;
+
+    std::ifstream fin("input.txt");
+    std::ofstream fout("output.txt");
+
+    Graph graph;
+
+    fin >> graph;
+
+    int32_t maxFlow = 0;
+    int32_t minCost = 0;
+
+    std::tie(minCost, maxFlow) = graph.findMinCostMaxFlow();
+
+    fout << maxFlow << '\n';
+    fout << minCost << '\n';
+
+    return 0;
 }

@@ -1,0 +1,18 @@
+bool dfs(v: int):
+    if (used[v])
+        return false
+    used[v] = true
+    for to in g[v]
+        if (matching[to] == -1 or dfs(matching[to])):
+            matching[to] = v
+            return true
+    return false
+
+function main():
+    fill(matching, -1)
+    for i = 1..n
+         fill(used, false)
+         dfs(i)
+    for i = 1..n
+         if (matching[i] != -1)
+              print(i, " ", matching[i])

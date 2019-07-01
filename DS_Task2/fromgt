@@ -1,0 +1,192 @@
+#include <vector>
+#include <cstdio>
+#include <functional>
+#include <queue>
+#include <iostream>
+#include <set>
+#include <memory>
+
+using namespace std;
+
+int n, r, left, right;
+int last;
+struct V;
+struct Q;
+int first;
+vector<vector<V*>> adj;
+
+struct V {
+	int num;
+	int priority;
+	int rout;
+	bool visited;
+
+
+	V(int num, int priority, int rout, bool visited);
+
+	V();
+
+};
+struct Q {
+	V *current;
+	Q *prev;
+	long long dist;
+	Q();
+
+	Q(V *current, Q *prev, long long int dist) : current(current), prev(prev), dist(dist) {}
+};
+
+Q::Q() {
+
+}
+
+
+V::V(int num, int priority, int rout, bool visited) : num(num), priority(priority), rout(rout), visited(visited) {}
+
+V::V() = default;
+
+
+
+
+
+struct cmp {
+	bool operator()(const Q *rhs, const Q *rhs2) {
+		return rhs->dist>rhs2->dist;
+	}
+};
+priority_queue<Q*, vector<Q*>, cmp> pq4;
+priority_queue<Q*, vector<Q*>, cmp> pq1;
+V *_v = nullptr;
+Q *u = nullptr;
+int dijksta(int firstT, int last) {
+
+
+	while (!pq1.empty() || !pq4.empty()) {
+
+		if (!pq1.empty() && !pq4.empty()) {
+			if (pq1.top()->dist< pq4.top()->dist) {
+				u = pq1.top();
+				pq1.pop();
+			}
+			else {
+				u = pq4.top();
+				pq4.pop();
+			}
+		}
+		else if (!pq4.empty()) {
+			u = pq4.top();
+			pq4.pop();
+
+
+		}
+		else if (!pq1.empty()) {
+			u = pq1.top();
+			pq1.pop();
+
+
+		}
+
+		(_v) = (u->current);
+		if ((u)->current->visited)continue;
+		(u)->current->visited = true;
+		if (((_v)->num) == last) {
+			return u->dist;
+		}
+		for (V *x : adj[(_v)->num]) {
+			if (!x->visited) {
+				{
+
+
+					if (x->rout == (_v)->rout && (abs(x->priority - (_v)->priority) == 1)) {
+
+
+						pq1.emplace(new Q(x, u, u->dist + 1));
+
+
+
+					}
+					else {
+
+						pq4.emplace(new Q(x, u, u->dist + 4));
+
+
+					}
+
+				}
+			}
+		}
+
+
+	}
+
+
+	return -1;
+
+}
+
+void print(int last) {
+	auto curr = u;
+	while (curr!=nullptr) {
+		cout << curr->current->num << " " << curr->current->rout << endl;
+		curr = (curr->prev);
+	}
+
+
+}
+
+
+int main() {
+	freopen("in.txt", "r", stdin);
+	freopen("out.txt", "w", stdout);
+
+
+	int u, v;
+	int c;
+
+	cin >> n >> r >> first >> last;
+
+	if (first == last) {
+		cout << 0;
+		return 0;
+	}
+	adj.resize(n + 1, vector<V*>());
+	for (int i = 0; i < r; ++i) {
+		cin >> c;
+		cin >> u;
+		V *ver1 = new V(u, 0, i + 1, false);
+		if (u == first) {
+			pq1.emplace(new Q(ver1, nullptr, 0));
+		}
+		for (int j = 0; j < c - 1; ++j) {
+			cin >> v;
+			V *ver2 = new  V(v, j + 1, i + 1, false);
+
+			if (v == first) {
+
+				pq1.emplace(new Q(ver2, nullptr, 0));
+			}
+
+			adj[u].emplace_back(ver2);
+			adj[v].emplace_back(ver1);
+
+			ver1 = ver2;
+
+
+
+
+			u = v;
+		}
+
+	}
+	long long ans = dijksta(first, last);
+	if (ans != -1) {
+		cout << ans << endl;
+		// cout << (*_v).num << " " << (*_v).rout<<endl;
+		print(last);
+
+	}
+	else {
+		cout << "NoWay" << endl;
+	}
+	return 0;
+}
