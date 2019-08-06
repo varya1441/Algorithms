@@ -92,9 +92,10 @@ public class Main {
         Calendar date = Calendar.getInstance();
         for (Bus b :
                 buses) {
-            date.setTime(b.getReachTime());
+            date.setTime(b.getStartTime());
             date.add(Calendar.HOUR, 1);
-            if (date.after(b.getReachTime())) {
+
+            if ((date.getTime()).after(b.getReachTime())) {
                 if (b.getStartTime().after(mTime)) {
                     mTime = b.getStartTime();
                     String key = b.getPriority();
