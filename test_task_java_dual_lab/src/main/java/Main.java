@@ -18,6 +18,10 @@ class Bus implements Comparable<Bus> {
         this.priority = priority;
     }
 
+    public Date getReachTime() {
+        return reachTime;
+    }
+
     public Date getStartTime() {
         return startTime;
     }
@@ -85,20 +89,24 @@ public class Main {
         Map<String, List<Bus>> nBus = new <String, List<Bus>>LinkedHashMap();
 
         Date mTime = new Date(Long.MIN_VALUE);
+        Calendar date = Calendar.getInstance();
         for (Bus b :
                 buses) {
-            if (b.getStartTime().after(mTime)) {
-                mTime = b.getStartTime();
-                String key = b.getPriority();
-                if (!nBus.containsKey(key)) {
-                    nBus.put(key, new ArrayList<Bus>(Arrays.asList(b)));
+            date.setTime(b.getReachTime());
+            date.add(Calendar.HOUR, 1);
+            if (date.after(b.getReachTime())) {
+                if (b.getStartTime().after(mTime)) {
+                    mTime = b.getStartTime();
+                    String key = b.getPriority();
+                    if (!nBus.containsKey(key)) {
+                        nBus.put(key, new ArrayList<Bus>(Arrays.asList(b)));
 
-                } else {
-                    nBus.get(key).add(b);
+                    } else {
+                        nBus.get(key).add(b);
+                    }
                 }
             }
         }
-
         try (FileWriter fileWriter = new FileWriter("output.txt")) {
 
             nBus.forEach((priority, pBuses) -> {
