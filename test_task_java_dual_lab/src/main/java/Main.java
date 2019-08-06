@@ -87,8 +87,10 @@ public class Main {
             e.printStackTrace();
         }
         List<Bus> buses = new <Bus>ArrayList();
-        while (sc.hasNext()) {
-            buses.add(new Bus(sc.next(), dt.parse(sc.next()), dt.parse(sc.next())));
+        if (sc != null) {
+            while (sc.hasNext()) {
+                buses.add(new Bus(sc.next(), dt.parse(sc.next()), dt.parse(sc.next())));
+            }
         }
         Collections.sort(buses);
         Map<String, List<Bus>> nBus = new <String, List<Bus>>LinkedHashMap();
