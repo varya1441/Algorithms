@@ -1,3 +1,5 @@
+import org.apache.commons.lang.time.StopWatch;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -75,6 +77,9 @@ public class Main {
     private final static SimpleDateFormat dt = new SimpleDateFormat("HH:mm", Locale.UK);
 
     public static void main(String[] args) throws ParseException {
+        StopWatch watch = new StopWatch();
+        watch.start();
+
         Scanner sc = null;
         try {
             sc = new Scanner(new File("input.txt"));
@@ -127,5 +132,7 @@ public class Main {
         } catch (IOException e) {
             System.err.format("IOException: %s%n", e);
         }
+        watch.stop();
+        System.out.println("Time Elapsed: " + watch.getTime());
     }
 }
